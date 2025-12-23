@@ -1,68 +1,49 @@
-package fr.rowlaxx.springwebsocketaop.service.base
+package fr.rowlaxx.springwebsocketaop.service.io
 
-import fr.rowlaxx.springwebsocketaop.data.WebSocketClientConfiguration
+import fr.rowlaxx.springwebsocketaop.data.CustomWebSocketClientConfiguration
 import fr.rowlaxx.springwebsocketaop.exception.WebSocketCreationException
 import fr.rowlaxx.springwebsocketaop.model.JavaWebSocketListener
 import fr.rowlaxx.springwebsocketaop.model.WebSocket
-import fr.rowlaxx.springwebsocketaop.model.WebSocketDeserializer
-import fr.rowlaxx.springwebsocketaop.model.WebSocketHandler
-import fr.rowlaxx.springwebsocketaop.model.WebSocketSerializer
-import fr.rowlaxx.springwebsocketaop.utils.HttpHeadersUtils.toJavaHeaders
 import org.springframework.stereotype.Service
 import java.net.http.HttpClient
 import java.nio.ByteBuffer
+import java.time.Duration
 import java.util.concurrent.CompletableFuture
 
 @Service
-class WebSocketClientFactoryService(
-    private val baseFactory: BaseWebSocketFactoryService
+class ClientWebSocketFactory(
+    private val baseFactory: BaseWebSocketFactory
 ) {
     private val httpClient = HttpClient.newHttpClient()
 
-    fun connect(
-        config: WebSocketClientConfiguration,
-        handlerChain: List<WebSocketHandler>,
-        name: String,
-        serializer: WebSocketSerializer,
-        deserializer: WebSocketDeserializer,
-    ): WebSocket {
+    fun connect(config: CustomWebSocketClientConfiguration): WebSocket {
         val impl = InternalImplementation(
             factory = baseFactory,
-            config = config,
-            handlerChain = handlerChain,
-            name = name,
-            serializer = serializer,
-            deserializer = deserializer,
+            config = config
         )
 
-        impl.connect(httpClient)
-
+        impl.connect(httpClient, config.connectTimeout)
         return impl
     }
 
     private class InternalImplementation(
-        factory: BaseWebSocketFactoryService,
-        config: WebSocketClientConfiguration,
-        handlerChain: List<WebSocketHandler>,
-        name: String,
-        serializer: WebSocketSerializer,
-        deserializer: WebSocketDeserializer,
-    ) : BaseWebSocketFactoryService.BaseWebSocket(
+        factory: BaseWebSocketFactory,
+        config: CustomWebSocketClientConfiguration
+    ) : BaseWebSocketFactory.BaseWebSocket(
         factory = factory,
         uri = config.uri,
-        connectTimeout = config.connectTimeout,
         readTimeout = config.readTimeout,
         pingAfter = config.pingAfter,
-        name = name,
-        handlerChain = handlerChain,
-        serializer = serializer,
-        deserializer = deserializer,
+        name = config.name,
+        handlerChain = config.handlerChain,
+        serializer = config.serializer,
+        deserializer = config.deserializer,
         initTimeout = config.initTimeout,
-        requestHeaders = config.headers.toJavaHeaders()
+        requestHeaders = config.headers
     ) {
         private var javaWS: java.net.http.WebSocket? = null
 
-        fun connect(client: HttpClient) {
+        fun connect(client: HttpClient, timeout: Duration) {
             val listener = JavaWebSocketListener(
                 onOpened = { safeAsync { unsafeOpenWith(it) } },
                 onError = { safeAsync { unsafeCloseWith(it) } },
@@ -72,7 +53,7 @@ class WebSocketClientFactoryService(
             )
 
             val builder = client.newWebSocketBuilder()
-                .connectTimeout(connectTimeout)
+                .connectTimeout(timeout)
 
             requestHeaders.map()
                 .flatMap { it.value.map { v -> it.key to v } }

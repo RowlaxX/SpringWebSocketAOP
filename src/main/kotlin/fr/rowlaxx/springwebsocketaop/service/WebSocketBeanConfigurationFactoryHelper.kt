@@ -1,7 +1,6 @@
 package fr.rowlaxx.marketdata.lib.websocket.service.aop
 
-import fr.rowlaxx.springwebsocketaop.annotation.WebSocketClientConfiguration
-import fr.rowlaxx.springwebsocketaop.data.WebSocketClientConfiguration
+import fr.rowlaxx.springwebsocketaop.data.CustomWebSocketClientConfiguration
 import org.springframework.aop.support.AopUtils
 import org.springframework.core.annotation.AnnotationUtils
 import org.springframework.stereotype.Service
@@ -13,9 +12,9 @@ import java.time.Duration
 @Service
 class WebSocketBeanConfigurationFactoryHelper {
 
-    fun extractConfigurationFactory(bean: Any): () -> fr.rowlaxx.springwebsocketaop.data.WebSocketClientConfiguration {
+    fun extractConfigurationFactory(bean: Any): () -> fr.rowlaxx.springwebsocketaop.data.CustomWebSocketClientConfiguration {
         val clazz = AopUtils.getTargetClass(bean)
-        val anno = AnnotationUtils.getAnnotation(clazz, WebSocketClientConfiguration::class.java)
+        val anno = AnnotationUtils.getAnnotation(clazz, CustomWebSocketClientConfiguration::class.java)
 
         if (anno != null) {
             val conf = WebSocketClientConfiguration(
@@ -31,7 +30,7 @@ class WebSocketBeanConfigurationFactoryHelper {
         val candidates = mutableListOf<Method>()
 
         ReflectionUtils.doWithMethods(clazz) {
-            if (it.returnType == WebSocketClientConfiguration::class.java) {
+            if (it.returnType == CustomWebSocketClientConfiguration::class.java) {
                 candidates.add(it)
             }
         }
@@ -51,7 +50,7 @@ class WebSocketBeanConfigurationFactoryHelper {
 
         candidate.isAccessible = true
 
-        return { candidate.invoke(bean) as fr.rowlaxx.springwebsocketaop.data.WebSocketClientConfiguration }
+        return { candidate.invoke(bean) as fr.rowlaxx.springwebsocketaop.data.CustomWebSocketClientConfiguration }
     }
 
 }

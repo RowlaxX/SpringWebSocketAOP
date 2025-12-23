@@ -1,6 +1,5 @@
 package fr.rowlaxx.marketdata.lib.websocket.service
 
-import fr.rowlaxx.springwebsocketaop.event.OnWebSocketsInitialized
 import fr.rowlaxx.springwebsocketaop.model.PerpetualWebSocket
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener

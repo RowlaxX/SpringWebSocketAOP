@@ -1,14 +1,16 @@
-package fr.rowlaxx.marketdata.lib.websocket.service.io
+package fr.rowlaxx.springwebsocketaop.service
 
-import fr.rowlaxx.marketdata.common.log.log
-import fr.rowlaxx.springwebsocketaop.exception.WebSocketException
-import fr.rowlaxx.marketdata.lib.websocket.model.*
 import fr.rowlaxx.springwebsocketaop.data.WebSocketAttribute
+import fr.rowlaxx.springwebsocketaop.exception.WebSocketException
 import fr.rowlaxx.springwebsocketaop.model.WebSocket
 import fr.rowlaxx.springwebsocketaop.model.WebSocketHandler
 import org.springframework.stereotype.Service
 import java.time.Duration
-import java.util.concurrent.*
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 @Service

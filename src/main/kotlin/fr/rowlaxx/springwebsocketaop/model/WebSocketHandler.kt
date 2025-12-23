@@ -2,7 +2,7 @@ package fr.rowlaxx.springwebsocketaop.model
 
 interface WebSocketHandler {
 
-    fun onAvailable(webWebSocket: WebSocket) {}
+    fun onAvailable(webSocket: WebSocket) {}
 
     fun onMessage(webSocket: WebSocket, msg: Any)  {}
 

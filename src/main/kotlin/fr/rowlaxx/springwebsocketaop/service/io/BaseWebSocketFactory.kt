@@ -1,12 +1,10 @@
-package fr.rowlaxx.springwebsocketaop.service.base
+package fr.rowlaxx.springwebsocketaop.service.io
 
 import fr.rowlaxx.springwebsocketaop.data.WebSocketAttributes
 import fr.rowlaxx.springwebsocketaop.exception.WebSocketClosedException
 import fr.rowlaxx.springwebsocketaop.exception.WebSocketConnectionException
-import fr.rowlaxx.springwebsocketaop.exception.WebSocketCreationException
 import fr.rowlaxx.springwebsocketaop.exception.WebSocketException
 import fr.rowlaxx.springwebsocketaop.exception.WebSocketInitializationException
-import fr.rowlaxx.springwebsocketaop.exception.WebSocketTimeoutException
 import fr.rowlaxx.springwebsocketaop.model.WebSocket
 import fr.rowlaxx.springwebsocketaop.model.WebSocketDeserializer
 import fr.rowlaxx.springwebsocketaop.model.WebSocketHandler
@@ -27,19 +25,18 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 @Service
-class BaseWebSocketFactoryService {
+class BaseWebSocketFactory {
     private val log = LoggerFactory.getLogger(this.javaClass)
     private val idCounter = AtomicLong()
     private val executor = Executors.newScheduledThreadPool(4) { Thread(it, "WebSocket IO") }
 
     abstract class BaseWebSocket(
-        private val factory: BaseWebSocketFactoryService,
+        private val factory: BaseWebSocketFactory,
         override val name: String,
         override val uri: URI,
         override val requestHeaders: HttpHeaders,
         override val serializer: WebSocketSerializer,
         override val deserializer: WebSocketDeserializer,
-        override val connectTimeout: Duration,
         override val initTimeout: Duration,
         override val handlerChain: List<WebSocketHandler>,
         override val pingAfter: Duration,
@@ -115,7 +112,7 @@ class BaseWebSocketFactoryService {
             }
 
             currentHandler.onAvailable(this)
-            onDataReceived()
+            onDataReceived() // Initialize ws timeout
 
             sendingQueue.poll()?.let {
                 unsafeSendNow(it.first, it.second)
@@ -138,7 +135,8 @@ class BaseWebSocketFactoryService {
                 return
             }
 
-            val des = deserializer.deserialize(obj)
+            val des = runCatching { deserializer.deserialize(obj) }
+                .getOrElse { return }
 
             safeAsync {
                 if (hasClosed()) {
@@ -164,9 +162,18 @@ class BaseWebSocketFactoryService {
         }
 
         override fun sendMessageAsync(message: Any): CompletableFuture<Unit> {
-            val cf = CompletableFuture<Unit>()
-            val ser = serializer.serialize(message)
+            if (hasClosed()) {
+                return CompletableFuture.failedFuture(closedWith!!)
+            }
 
+            val ser = when (message) {
+                is String -> message
+                is ByteArray -> message
+                else -> runCatching { serializer.serialize(message) }
+                    .getOrElse { return CompletableFuture.failedFuture(it) }
+            }
+
+            val cf = CompletableFuture<Unit>()
             when (ser) {
                 is String -> safeAsync { unsafeSendNow(cf) { unsafeSendText(ser) } }
                 is ByteArray -> safeAsync { unsafeSendNow(cf) { unsafeSendBinary(ser) } }

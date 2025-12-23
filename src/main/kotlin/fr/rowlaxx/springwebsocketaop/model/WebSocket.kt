@@ -13,7 +13,6 @@ interface WebSocket {
     val name: String
     val uri: URI
     val pingAfter: Duration
-    val connectTimeout: Duration
     val readTimeout: Duration
     val initTimeout: Duration
 

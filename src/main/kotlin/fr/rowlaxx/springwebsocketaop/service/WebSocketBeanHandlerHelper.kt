@@ -3,8 +3,8 @@ package fr.rowlaxx.marketdata.lib.websocket.service.aop
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import fr.rowlaxx.marketdata.lib.reflection.MyReflectionUtils
-import fr.rowlaxx.springwebsocketaop.annotation.OnConnected
-import fr.rowlaxx.springwebsocketaop.annotation.OnDisconnected
+import fr.rowlaxx.springwebsocketaop.annotation.OnAvailable
+import fr.rowlaxx.springwebsocketaop.annotation.OnUnavailable
 import fr.rowlaxx.springwebsocketaop.annotation.OnMessage
 import fr.rowlaxx.springwebsocketaop.exception.WebSocketException
 import fr.rowlaxx.springwebsocketaop.model.PerpetualWebSocket
@@ -17,14 +17,14 @@ class WebSocketBeanHandlerHelper(
 ) {
 
     fun extractHandler(bean: Any): PerpetualWebSocketHandler {
-        val onConnectedExec = MyReflectionUtils.whenAnnoPresentOnMethod(bean, OnConnected::class.java)
+        val onConnectedExec = MyReflectionUtils.whenAnnoPresentOnMethod(bean, OnAvailable::class.java)
             .map { MyReflectionUtils.executeFunction(
                 obj = bean,
                 method = it.first,
                 params = listOf(PerpetualWebSocket::class.java)
             ) }
 
-        val onDisconnectedExec = MyReflectionUtils.whenAnnoPresentOnMethod(bean, OnDisconnected::class.java)
+        val onDisconnectedExec = MyReflectionUtils.whenAnnoPresentOnMethod(bean, OnUnavailable::class.java)
             .map { MyReflectionUtils.executeFunction(
                 obj = bean,
                 method = it.first,

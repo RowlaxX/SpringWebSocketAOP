@@ -1,0 +1,114 @@
+package fr.rowlaxx.springwebsocketaop.service.io
+
+import fr.rowlaxx.springwebsocketaop.data.CustomWebSocketServerConfiguration
+import fr.rowlaxx.springwebsocketaop.exception.WebSocketClosedException
+import fr.rowlaxx.springwebsocketaop.exception.WebSocketConnectionException
+import fr.rowlaxx.springwebsocketaop.model.WebSocket
+import fr.rowlaxx.springwebsocketaop.utils.WebSocketMapAttributesUtils
+import fr.rowlaxx.springwebsocketaop.utils.WebSocketSessionUtils.setHandleBinaryMessage
+import fr.rowlaxx.springwebsocketaop.utils.WebSocketSessionUtils.setHandleClose
+import fr.rowlaxx.springwebsocketaop.utils.WebSocketSessionUtils.setHandlePongMessage
+import fr.rowlaxx.springwebsocketaop.utils.WebSocketSessionUtils.setHandleTextMessage
+import fr.rowlaxx.springwebsocketaop.utils.WebSocketSessionUtils.setHandleTransportError
+import org.springframework.stereotype.Service
+import org.springframework.web.socket.BinaryMessage
+import org.springframework.web.socket.PingMessage
+import org.springframework.web.socket.TextMessage
+import org.springframework.web.socket.WebSocketSession
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
+
+@Service
+class ServerWebSocketFactory(
+    private val baseFactory: BaseWebSocketFactory,
+) {
+    private val sender = Executors.newScheduledThreadPool(2) { Thread(it, "WebSocket Sender") }
+
+    fun wrap(
+        session: WebSocketSession,
+        config: CustomWebSocketServerConfiguration,
+    ): WebSocket {
+        return InternalImplementation(
+            sender = sender,
+            session = session,
+            config = config,
+            factory = baseFactory,
+        )
+    }
+
+    private class InternalImplementation(
+        private val sender: Executor,
+        private val session: WebSocketSession,
+        factory: BaseWebSocketFactory,
+        config: CustomWebSocketServerConfiguration,
+    ) : BaseWebSocketFactory.BaseWebSocket(
+        factory = factory,
+        name = config.name,
+        uri = WebSocketMapAttributesUtils.getURI(session.attributes),
+        requestHeaders = WebSocketMapAttributesUtils.getRequestHeaders(session.attributes),
+        serializer = config.serializer,
+        deserializer = config.deserializer,
+        initTimeout = config.initTimeout,
+        handlerChain = config.handlerChain,
+        pingAfter = config.pingAfter,
+        readTimeout = config.readTimeout,
+        attributes = WebSocketMapAttributesUtils.getOrCreateAttributes(session.attributes)
+    ) {
+
+        init {
+            session.setHandlePongMessage {
+                onDataReceived()
+            }
+            session.setHandleTextMessage {
+                onDataReceived()
+                acceptMessage(it)
+            }
+            session.setHandleBinaryMessage {
+                onDataReceived()
+                acceptMessage(it)
+            }
+            session.setHandleClose { safeAsync {
+                unsafeCloseWith(WebSocketClosedException(it.reason ?: "Unknown reason", it.code))
+            } }
+            session.setHandleTransportError { safeAsync {
+                unsafeCloseWith(WebSocketConnectionException("Transport error : ${it.message}"))
+            } }
+            safeAsync {
+                unsafeOpenWith(session)
+            }
+        }
+
+        private fun send(task: () -> Unit): CompletableFuture<Unit> {
+            val cf = CompletableFuture<Unit>()
+
+            sender.execute {
+                try {
+                    task()
+                    cf.complete(Unit)
+                } catch (e: Exception) {
+                    cf.completeExceptionally(e)
+                }
+            }
+
+            return cf
+        }
+
+        override fun unsafePingNow(): CompletableFuture<*> {
+            return send { session.sendMessage(PingMessage()) }
+        }
+
+        override fun unsafeSendText(msg: String): CompletableFuture<*> {
+            return send { session.sendMessage(TextMessage(msg)) }
+        }
+
+        override fun unsafeSendBinary(msg: ByteArray): CompletableFuture<*> {
+            return send { session.sendMessage(BinaryMessage(msg)) }
+        }
+
+        override fun unsafeHandleClose() {}
+        override fun unsafeHandleOpen(obj: Any) {}
+
+    }
+
+}

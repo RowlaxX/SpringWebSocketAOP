@@ -1,9 +1,9 @@
 package fr.rowlaxx.springwebsocketaop.annotation
 
-import fr.rowlaxx.marketdata.lib.websocket.service.aop.WebSocketBeanFactoryService
+import fr.rowlaxx.springwebsocketaop.conf.WebSocketServerConfiguration
 import org.springframework.context.annotation.Import
 
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.CLASS)
-@Import(WebSocketBeanFactoryService::class)
+@Import(WebSocketServerConfiguration::class)
 annotation class EnableWebSocketAOP()

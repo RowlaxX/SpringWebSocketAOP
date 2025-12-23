@@ -6,11 +6,8 @@ import fr.rowlaxx.marketdata.lib.reflection.MyReflectionUtils
 import fr.rowlaxx.marketdata.lib.websocket.annotation.*
 import fr.rowlaxx.springwebsocketaop.exception.WebSocketException
 import fr.rowlaxx.springwebsocketaop.model.WebSocket
-import fr.rowlaxx.springwebsocketaop.annotation.OnCancelled
-import fr.rowlaxx.springwebsocketaop.annotation.OnConnected
-import fr.rowlaxx.springwebsocketaop.annotation.OnInitialized
+import fr.rowlaxx.springwebsocketaop.annotation.OnAvailable
 import fr.rowlaxx.springwebsocketaop.annotation.OnMessage
-import fr.rowlaxx.springwebsocketaop.annotation.WebSocketInitializer
 import org.springframework.aop.support.AopUtils
 import org.springframework.core.annotation.AnnotationUtils
 import org.springframework.stereotype.Service
@@ -40,7 +37,7 @@ class WebSocketBeanInitializerHelper(
                 params = listOf(WebSocket::class.java)
             )}
 
-        val onConnectedExec = MyReflectionUtils.whenAnnoPresentOnMethod(bean, OnConnected::class.java)
+        val onConnectedExec = MyReflectionUtils.whenAnnoPresentOnMethod(bean, OnAvailable::class.java)
             .map { MyReflectionUtils.executeFunction(
                 obj = bean,
                 method = it.first,
