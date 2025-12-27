@@ -2,6 +2,7 @@ package fr.rowlaxx.springwebsocketaop.annotation
 
 import fr.rowlaxx.springwebsocketaop.model.WebSocketDeserializer
 import fr.rowlaxx.springwebsocketaop.model.WebSocketSerializer
+import org.intellij.lang.annotations.Language
 import org.springframework.stereotype.Component
 import kotlin.reflect.KClass
 
@@ -11,27 +12,28 @@ import kotlin.reflect.KClass
 annotation class WebSocketClient(
 
     val name: String = "",
-    val url: String = "",
+    val url: String,
     val headers: Array<Header> = [],
 
-    val initializer: Array<KClass<*>> = [],
-    val serializer: KClass<out WebSocketSerializer> = WebSocketSerializer.Passthrough::class,
-    val deserializer: KClass<out WebSocketDeserializer> = WebSocketDeserializer.Passthrough::class,
+    val initializers: Array<KClass<*>> = [],
+    val defaultSerializer: KClass<out WebSocketSerializer> = WebSocketSerializer.Passthrough::class,
+    val defaultDeserializer: KClass<out WebSocketDeserializer> = WebSocketDeserializer.Passthrough::class,
 
     val connectTimeout: String = "PT5S",
     val initTimeout: String = "PT10S",
     val pingAfter: String = "PT5S",
     val readTimeout: String = "PT10S",
 
-    val aliveDuration: String = "PT4H",
-    val shiftDuration: String = "PT3S",
+    val shiftDuration: String = "PT4H",
+    val switchDuration: String = "PT3S",
 
-) {
+    ) {
     @Retention(AnnotationRetention.RUNTIME)
     annotation class Header(
         val name: String,
-        val content: String,
 
-        val spelExpression: Boolean = false,
+        @Language("SpEL")
+        val expression: String,
+
     )
 }

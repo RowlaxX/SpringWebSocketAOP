@@ -1,13 +1,18 @@
 package fr.rowlaxx.springwebsocketaop.model
 
-import fr.rowlaxx.springwebsocketaop.data.WebSocketAttributes
+import fr.rowlaxx.springwebsocketaop.data.WebSocketClientProperties
+import java.time.Duration
 import java.util.concurrent.CompletableFuture
 
 interface PerpetualWebSocket {
 
-    val id: Long
+    val id: Int
     val name: String
-    val attributes: WebSocketAttributes
+    val switchDuration: Duration
+    val shiftDuration: Duration
+    val initializers: List<WebSocketHandler>
+    val handler: PerpetualWebSocketHandler
+    val propertiesFactory: () -> WebSocketClientProperties
 
     fun isConnected(): Boolean
     fun sendMessageAsync(message: Any): CompletableFuture<Unit>

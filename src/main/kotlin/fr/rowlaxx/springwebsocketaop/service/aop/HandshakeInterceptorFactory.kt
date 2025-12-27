@@ -20,11 +20,11 @@ class HandshakeInterceptorFactory {
     private val injectableAfter = arrayOf(WebSocketAttributes::class, ServerHttpResponse::class, ServerHttpResponse::class, Exception::class)
 
     fun extract(bean: Any): HandshakeInterceptor {
-        val before = ReflectionUtils.findMethodWithAnnotations(bean, BeforeHandshake::class)
+        val before = ReflectionUtils.findMethodsWithAnnotation(bean, BeforeHandshake::class)
             .map { it.second }
             .map { ReflectionUtils.findInjectionScheme(bean, it, *injectableBefore) }
 
-        val after = ReflectionUtils.findMethodWithAnnotations(bean, AfterHandshake::class)
+        val after = ReflectionUtils.findMethodsWithAnnotation(bean, AfterHandshake::class)
             .map { it.second }
             .map { ReflectionUtils.findInjectionScheme(bean, it, *injectableAfter) }
 

@@ -1,12 +1,11 @@
 package fr.rowlaxx.springwebsocketaop.conf
 
 import fr.rowlaxx.springwebsocketaop.annotation.WebSocketServer
-import fr.rowlaxx.springwebsocketaop.data.CustomWebSocketServerConfiguration
-import fr.rowlaxx.springwebsocketaop.model.SpringWebSocketHandler
-import fr.rowlaxx.springwebsocketaop.model.WebSocketDeserializer
-import fr.rowlaxx.springwebsocketaop.model.WebSocketSerializer
+import fr.rowlaxx.springwebsocketaop.data.WebSocketServerProperties
+import fr.rowlaxx.springwebsocketaop.utils.SpringWebSocketHandler
 import fr.rowlaxx.springwebsocketaop.service.aop.HandshakeInterceptorFactory
 import fr.rowlaxx.springwebsocketaop.service.aop.WebSocketHandlerFactory
+import fr.rowlaxx.springwebsocketaop.service.aop.WebSocketSerializerDeserializerExtractor
 import fr.rowlaxx.springwebsocketaop.service.io.ServerWebSocketFactory
 import org.springframework.aop.support.AopUtils
 import org.springframework.beans.factory.getBeansWithAnnotation
@@ -23,7 +22,8 @@ class WebSocketServerConfiguration(
     private val applicationContext: ApplicationContext,
     private val webSocketFactory: ServerWebSocketFactory,
     private val handlerFactory: WebSocketHandlerFactory,
-    private val handshakeInterceptorFactory: HandshakeInterceptorFactory
+    private val handshakeInterceptorFactory: HandshakeInterceptorFactory,
+    private val serDesExtractor: WebSocketSerializerDeserializerExtractor
 ) : WebSocketConfigurer {
 
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
@@ -31,7 +31,7 @@ class WebSocketServerConfiguration(
 
         for (bean in beans) {
             val type = AopUtils.getTargetClass(bean)
-            val anno = type.getAnnotation(WebSocketServer::class.java)
+            val anno = type.getAnnotation(WebSocketServer::class.java) ?: continue
 
             if (anno.paths.isEmpty()) {
                 throw IllegalArgumentException("@ServerWebSocket must have at least one path : ${bean::class.java}")
@@ -41,20 +41,15 @@ class WebSocketServerConfiguration(
             val handlerChain = anno.initializers
                 .map { applicationContext.getBean(it.java) }
                 .plus(bean)
-                .map { handlerFactory.extract(it) }
-
-            val serializer = if (anno.serializer == WebSocketSerializer.Passthrough::class)
-                WebSocketSerializer.Passthrough else applicationContext.getBean(anno.serializer.java)
-            val deserializer = if (anno.deserializer == WebSocketDeserializer.Passthrough::class)
-                WebSocketDeserializer.Passthrough else applicationContext.getBean(anno.deserializer.java)
-
+                .map {
+                    val (ser, des) = serDesExtractor.extract(anno, bean)
+                    handlerFactory.extract(it, ser, des)
+                }
 
             val handshakeInterceptor = handshakeInterceptorFactory.extract(handlerChain.first())
-            val config = CustomWebSocketServerConfiguration(
+            val config = WebSocketServerProperties(
                 name = name,
                 handlerChain = handlerChain,
-                serializer = serializer,
-                deserializer = deserializer,
                 initTimeout = Duration.parse(anno.initTimeout),
                 readTimeout = Duration.parse(anno.readTimeout),
                 pingAfter = Duration.parse(anno.pingAfter),

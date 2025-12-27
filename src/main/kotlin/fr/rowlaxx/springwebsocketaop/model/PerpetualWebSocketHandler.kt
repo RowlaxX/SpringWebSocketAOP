@@ -1,13 +1,13 @@
 package fr.rowlaxx.springwebsocketaop.model
 
-import fr.rowlaxx.springwebsocketaop.exception.WebSocketException
-
 interface PerpetualWebSocketHandler {
+    val serializer: WebSocketSerializer
+    val deserializer: WebSocketDeserializer
 
-    fun onConnected(webSocket: PerpetualWebSocket) {}
+    fun onAvailable(webSocket: PerpetualWebSocket) {}
 
-    fun onMessage(webSocket: PerpetualWebSocket, text: String) {}
+    fun onMessage(webSocket: PerpetualWebSocket, msg: Any)  {}
 
-    fun onDisconnected(webSocket: PerpetualWebSocket, exception: WebSocketException) {}
+    fun onUnavailable(webSocket: PerpetualWebSocket) {}
 
 }

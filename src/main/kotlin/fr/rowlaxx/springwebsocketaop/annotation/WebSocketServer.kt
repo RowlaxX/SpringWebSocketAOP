@@ -14,8 +14,8 @@ annotation class WebSocketServer(
     val paths: Array<String>,
 
     val initializers: Array<KClass<*>> = [],
-    val serializer: KClass<out WebSocketSerializer> = WebSocketSerializer.Passthrough::class,
-    val deserializer: KClass<out WebSocketDeserializer> = WebSocketDeserializer.Passthrough::class,
+    val defaultSerializer: KClass<out WebSocketSerializer> = WebSocketSerializer.Passthrough::class,
+    val defaultDeserializer: KClass<out WebSocketDeserializer> = WebSocketDeserializer.Passthrough::class,
 
     val withSockJS: Boolean = false,
     val allowedOriginPatterns: Array<String> = [],

@@ -1,6 +1,8 @@
 package fr.rowlaxx.springwebsocketaop.model
 
 interface WebSocketHandler {
+    val serializer: WebSocketSerializer
+    val deserializer: WebSocketDeserializer
 
     fun onAvailable(webSocket: WebSocket) {}
 

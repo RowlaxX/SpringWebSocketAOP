@@ -1,6 +1,6 @@
-package fr.rowlaxx.springwebsocketaop.model
+package fr.rowlaxx.springwebsocketaop.utils
 
-import fr.rowlaxx.springwebsocketaop.data.CustomWebSocketServerConfiguration
+import fr.rowlaxx.springwebsocketaop.data.WebSocketServerProperties
 import fr.rowlaxx.springwebsocketaop.service.io.ServerWebSocketFactory
 import fr.rowlaxx.springwebsocketaop.utils.ByteBufferUtils.getBackingArray
 import fr.rowlaxx.springwebsocketaop.utils.WebSocketSessionUtils.handleBinaryMessage
@@ -13,7 +13,7 @@ import org.springframework.web.socket.handler.AbstractWebSocketHandler
 
 @Suppress("UNCHECKED_CAST")
 class SpringWebSocketHandler(
-    private val config: CustomWebSocketServerConfiguration,
+    private val config: WebSocketServerProperties,
     private val serverWebSocketFactory: ServerWebSocketFactory
 ) : AbstractWebSocketHandler() {
 

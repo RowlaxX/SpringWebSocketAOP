@@ -1,52 +1,75 @@
 package fr.rowlaxx.springwebsocketaop.service.io
 
-import fr.rowlaxx.springwebsocketaop.data.CustomWebSocketClientConfiguration
+import fr.rowlaxx.springwebsocketaop.data.WebSocketClientProperties
 import fr.rowlaxx.springwebsocketaop.exception.WebSocketCreationException
-import fr.rowlaxx.springwebsocketaop.model.JavaWebSocketListener
+import fr.rowlaxx.springwebsocketaop.exception.WebSocketException
 import fr.rowlaxx.springwebsocketaop.model.WebSocket
+import fr.rowlaxx.springwebsocketaop.model.WebSocketHandler
+import fr.rowlaxx.springwebsocketaop.utils.JavaWebSocketListener
 import org.springframework.stereotype.Service
 import java.net.http.HttpClient
 import java.nio.ByteBuffer
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @Service
 class ClientWebSocketFactory(
     private val baseFactory: BaseWebSocketFactory
 ) {
     private val httpClient = HttpClient.newHttpClient()
+    private val scheduler = Executors.newSingleThreadScheduledExecutor { Thread(it, "WebSocket Connector") }
 
-    fun connect(config: CustomWebSocketClientConfiguration): WebSocket {
-        val impl = InternalImplementation(
+    fun connectFailsafe(
+        name: String,
+        properties: WebSocketClientProperties,
+        handlerChain: List<WebSocketHandler>,
+    ) {
+        connect(name, properties, handlerChain) {
+            scheduler.schedule({
+                connectFailsafe(name, properties, handlerChain)
+            }, 2000, TimeUnit.MILLISECONDS)
+        }
+    }
+
+    fun connect(
+        name: String,
+        properties: WebSocketClientProperties,
+        handlerChain: List<WebSocketHandler>,
+        onInitializationError: (WebSocketException) -> Unit
+    ): WebSocket {
+        return InternalImplementation(
             factory = baseFactory,
-            config = config
-        )
-
-        impl.connect(httpClient, config.connectTimeout)
-        return impl
+            properties = properties,
+            handlerChain = handlerChain,
+            name = name,
+            onInitializationError = onInitializationError
+        ).apply { connect(httpClient, properties.connectTimeout) }
     }
 
     private class InternalImplementation(
+        name: String,
         factory: BaseWebSocketFactory,
-        config: CustomWebSocketClientConfiguration
+        properties: WebSocketClientProperties,
+        handlerChain: List<WebSocketHandler>,
+        private val onInitializationError: (WebSocketException) -> Unit
     ) : BaseWebSocketFactory.BaseWebSocket(
         factory = factory,
-        uri = config.uri,
-        readTimeout = config.readTimeout,
-        pingAfter = config.pingAfter,
-        name = config.name,
-        handlerChain = config.handlerChain,
-        serializer = config.serializer,
-        deserializer = config.deserializer,
-        initTimeout = config.initTimeout,
-        requestHeaders = config.headers
+        uri = properties.uri,
+        readTimeout = properties.readTimeout,
+        pingAfter = properties.pingAfter,
+        name = name,
+        handlerChain = handlerChain,
+        initTimeout = properties.initTimeout,
+        requestHeaders = properties.headers
     ) {
         private var javaWS: java.net.http.WebSocket? = null
 
         fun connect(client: HttpClient, timeout: Duration) {
             val listener = JavaWebSocketListener(
-                onOpened = { safeAsync { unsafeOpenWith(it) } },
-                onError = { safeAsync { unsafeCloseWith(it) } },
+                onOpened = { openWith(it) },
+                onError = { closeWith(it) },
                 onTextMessage = { acceptMessage(it) },
                 onBinaryMessage = { acceptMessage(it) },
                 onDataReceived = { onDataReceived() }
@@ -61,33 +84,34 @@ class ClientWebSocketFactory(
 
             builder.buildAsync(uri, listener)
                 .exceptionally {
-                    safeAsync {
-                        unsafeCloseWith(WebSocketCreationException(it.message ?: "Unknown error"))
-                    }
+                    closeWith(WebSocketCreationException(it.message ?: "Unknown error"))
                     null
                 }
         }
 
-        override fun unsafePingNow(): CompletableFuture<*> {
+        override fun pingNow(): CompletableFuture<*> {
             return javaWS!!.sendPing(ByteBuffer.allocate(0))
         }
 
-        override fun unsafeSendText(msg: String): CompletableFuture<*> {
+        override fun sendText(msg: String): CompletableFuture<*> {
             return javaWS!!.sendText(msg, true)
         }
 
-        override fun unsafeSendBinary(msg: ByteArray): CompletableFuture<*> {
+        override fun sendBinary(msg: ByteArray): CompletableFuture<*> {
             return javaWS!!.sendBinary(ByteBuffer.wrap(msg), true)
         }
 
-        override fun unsafeHandleClose() {
+        override fun handleClose() {
             javaWS!!.abort()
+
+            if (!isInitialized()) {
+                onInitializationError(getClosedReason()!!)
+            }
         }
 
-        override fun unsafeHandleOpen(obj: Any) {
+        override fun handleOpen(obj: Any) {
             javaWS = obj as java.net.http.WebSocket
         }
-
     }
 
 }

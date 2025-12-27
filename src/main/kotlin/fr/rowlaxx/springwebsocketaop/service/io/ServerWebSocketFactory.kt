@@ -1,6 +1,6 @@
 package fr.rowlaxx.springwebsocketaop.service.io
 
-import fr.rowlaxx.springwebsocketaop.data.CustomWebSocketServerConfiguration
+import fr.rowlaxx.springwebsocketaop.data.WebSocketServerProperties
 import fr.rowlaxx.springwebsocketaop.exception.WebSocketClosedException
 import fr.rowlaxx.springwebsocketaop.exception.WebSocketConnectionException
 import fr.rowlaxx.springwebsocketaop.model.WebSocket
@@ -27,7 +27,7 @@ class ServerWebSocketFactory(
 
     fun wrap(
         session: WebSocketSession,
-        config: CustomWebSocketServerConfiguration,
+        config: WebSocketServerProperties,
     ): WebSocket {
         return InternalImplementation(
             sender = sender,
@@ -41,14 +41,12 @@ class ServerWebSocketFactory(
         private val sender: Executor,
         private val session: WebSocketSession,
         factory: BaseWebSocketFactory,
-        config: CustomWebSocketServerConfiguration,
+        config: WebSocketServerProperties,
     ) : BaseWebSocketFactory.BaseWebSocket(
         factory = factory,
         name = config.name,
         uri = WebSocketMapAttributesUtils.getURI(session.attributes),
         requestHeaders = WebSocketMapAttributesUtils.getRequestHeaders(session.attributes),
-        serializer = config.serializer,
-        deserializer = config.deserializer,
         initTimeout = config.initTimeout,
         handlerChain = config.handlerChain,
         pingAfter = config.pingAfter,
@@ -68,15 +66,14 @@ class ServerWebSocketFactory(
                 onDataReceived()
                 acceptMessage(it)
             }
-            session.setHandleClose { safeAsync {
-                unsafeCloseWith(WebSocketClosedException(it.reason ?: "Unknown reason", it.code))
-            } }
-            session.setHandleTransportError { safeAsync {
-                unsafeCloseWith(WebSocketConnectionException("Transport error : ${it.message}"))
-            } }
-            safeAsync {
-                unsafeOpenWith(session)
+            session.setHandleClose {
+                closeWith(WebSocketClosedException(it.reason ?: "Unknown reason", it.code))
             }
+            session.setHandleTransportError {
+                closeWith(WebSocketConnectionException("Transport error : ${it.message}"))
+            }
+
+            openWith(session)
         }
 
         private fun send(task: () -> Unit): CompletableFuture<Unit> {
@@ -94,20 +91,20 @@ class ServerWebSocketFactory(
             return cf
         }
 
-        override fun unsafePingNow(): CompletableFuture<*> {
+        override fun pingNow(): CompletableFuture<*> {
             return send { session.sendMessage(PingMessage()) }
         }
 
-        override fun unsafeSendText(msg: String): CompletableFuture<*> {
+        override fun sendText(msg: String): CompletableFuture<*> {
             return send { session.sendMessage(TextMessage(msg)) }
         }
 
-        override fun unsafeSendBinary(msg: ByteArray): CompletableFuture<*> {
+        override fun sendBinary(msg: ByteArray): CompletableFuture<*> {
             return send { session.sendMessage(BinaryMessage(msg)) }
         }
 
-        override fun unsafeHandleClose() {}
-        override fun unsafeHandleOpen(obj: Any) {}
+        override fun handleClose() {}
+        override fun handleOpen(obj: Any) {}
 
     }
 

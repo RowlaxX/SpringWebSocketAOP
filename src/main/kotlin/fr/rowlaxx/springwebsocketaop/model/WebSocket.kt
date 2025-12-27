@@ -21,8 +21,6 @@ interface WebSocket {
     val handlerChain: List<WebSocketHandler>
     val currentHandler: WebSocketHandler get() = handlerChain[currentHandlerIndex]
     val currentHandlerIndex: Int
-    val serializer: WebSocketSerializer
-    val deserializer: WebSocketDeserializer
 
     val requestHeaders: HttpHeaders
 

@@ -8,13 +8,26 @@ import kotlin.reflect.KClass
 
 object ReflectionUtils {
 
-    fun <T : Annotation> findMethodWithAnnotations(instance: Any, anno: KClass<T>): List<Pair<T, Method>> {
+    fun <T : Annotation> findMethodsWithAnnotation(instance: Any, anno: KClass<T>): List<Pair<T, Method>> {
         val result = mutableListOf<Pair<T, Method>>()
         val type = AopUtils.getTargetClass(instance)
 
         ReflectionUtils.doWithMethods(type) {
             it.getAnnotation(anno.java)?.let { a ->
                 result.add(a to it)
+            }
+        }
+
+        return result
+    }
+
+    fun findMethodsWithReturnType(instance: Any, type: KClass<*>): List<Method> {
+        val result = mutableListOf<Method>()
+        val instanceType = AopUtils.getTargetClass(instance)
+
+        ReflectionUtils.doWithMethods(instanceType) {
+            if (it.returnType == type.java) {
+                result.add(it)
             }
         }
 
@@ -50,7 +63,7 @@ object ReflectionUtils {
 
         return InjectionScheme(
             method = method.also { it.isAccessible = true },
-            injectedTypes = params.map { if (it == Unit::class) convertAnyTo else it },
+            injectedTypes = params.map { if (it == Any::class) convertAnyTo else it },
             paramOrder = paramOrder,
             instance = instance,
         )
@@ -78,13 +91,9 @@ object ReflectionUtils {
             }
         }
 
-        val toInject = scheme.paramOrder.map { args[it] }
+        val toInject = scheme.paramOrder.map { args[it] }.toTypedArray()
 
-        try {
-            return scheme.method.invoke(scheme.instance, *toInject.toTypedArray())
-        } catch(e: InvocationTargetException) {
-            throw e.cause ?: e
-        }
+        return ReflectionUtils.invokeMethod(scheme.method, scheme.instance, *toInject)
     }
 
     data class InjectionScheme(
