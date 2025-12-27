@@ -70,7 +70,7 @@ class MarketDataClient {
     private val perp = AutoPerpetualWebSocket() // For outside context access
      
     @OnAvailable
-    //Called when the connection pool get from 0 to 1
+    //Called when the connection pool size get from 0 to 1
     fun onAvailable() {
         println("Ready")
     }
@@ -82,7 +82,7 @@ class MarketDataClient {
     }
     
     @OnUnavailable
-    //Called when the connection pool get from 1 to 0
+    //Called when the connection pool size get from 1 to 0
     fun onUnavailable() {
         //Logic
     }
