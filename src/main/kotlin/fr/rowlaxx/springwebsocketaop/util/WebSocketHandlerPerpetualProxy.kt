@@ -1,4 +1,4 @@
-package fr.rowlaxx.springwebsocketaop.utils
+package fr.rowlaxx.springwebsocketaop.util
 
 import fr.rowlaxx.springwebsocketaop.model.*
 
@@ -6,6 +6,7 @@ class WebSocketHandlerPerpetualProxy(
     private val acceptOpeningConnection: (WebSocket) -> Boolean,
     private val acceptMessage: (WebSocket, Any) -> Boolean,
     private val acceptClosingConnection: (WebSocket) -> Boolean,
+    private val sendPendingMessages: () -> Unit,
     private val perpetualWebSocket: PerpetualWebSocket,
     private val handler: PerpetualWebSocketHandler
 ) : WebSocketHandler {
@@ -16,6 +17,7 @@ class WebSocketHandlerPerpetualProxy(
         if (acceptOpeningConnection(webSocket)) {
             handler.onAvailable(perpetualWebSocket)
         }
+        sendPendingMessages()
     }
 
     override fun onMessage(webSocket: WebSocket, msg: Any) {
@@ -25,6 +27,9 @@ class WebSocketHandlerPerpetualProxy(
     }
 
     override fun onUnavailable(webSocket: WebSocket) {
+        if (!webSocket.isInitialized()) { // When handlerChain.size == !
+            return
+        }
         if (acceptClosingConnection(webSocket)) {
             handler.onUnavailable(perpetualWebSocket)
         }

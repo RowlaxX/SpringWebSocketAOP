@@ -1,4 +1,4 @@
-package fr.rowlaxx.springwebsocketaop.utils
+package fr.rowlaxx.springwebsocketaop.util
 
 import java.util.*
 

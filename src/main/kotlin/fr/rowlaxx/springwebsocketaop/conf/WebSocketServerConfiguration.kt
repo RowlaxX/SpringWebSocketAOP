@@ -2,7 +2,7 @@ package fr.rowlaxx.springwebsocketaop.conf
 
 import fr.rowlaxx.springwebsocketaop.annotation.WebSocketServer
 import fr.rowlaxx.springwebsocketaop.data.WebSocketServerProperties
-import fr.rowlaxx.springwebsocketaop.utils.SpringWebSocketHandler
+import fr.rowlaxx.springwebsocketaop.util.SpringWebSocketHandler
 import fr.rowlaxx.springwebsocketaop.service.aop.HandshakeInterceptorFactory
 import fr.rowlaxx.springwebsocketaop.service.aop.WebSocketHandlerFactory
 import fr.rowlaxx.springwebsocketaop.service.aop.WebSocketSerializerDeserializerExtractor

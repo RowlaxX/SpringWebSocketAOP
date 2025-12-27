@@ -1,4 +1,4 @@
-package fr.rowlaxx.springwebsocketaop.utils
+package fr.rowlaxx.springwebsocketaop.util
 
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.WebSocketSession

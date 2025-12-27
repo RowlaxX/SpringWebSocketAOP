@@ -1,13 +1,13 @@
-package fr.rowlaxx.springwebsocketaop.utils
+package fr.rowlaxx.springwebsocketaop.util
 
 import fr.rowlaxx.springwebsocketaop.data.WebSocketServerProperties
 import fr.rowlaxx.springwebsocketaop.service.io.ServerWebSocketFactory
-import fr.rowlaxx.springwebsocketaop.utils.ByteBufferUtils.getBackingArray
-import fr.rowlaxx.springwebsocketaop.utils.WebSocketSessionUtils.handleBinaryMessage
-import fr.rowlaxx.springwebsocketaop.utils.WebSocketSessionUtils.handleClose
-import fr.rowlaxx.springwebsocketaop.utils.WebSocketSessionUtils.handlePongMessage
-import fr.rowlaxx.springwebsocketaop.utils.WebSocketSessionUtils.handleTextMessage
-import fr.rowlaxx.springwebsocketaop.utils.WebSocketSessionUtils.handleTransportError
+import fr.rowlaxx.springwebsocketaop.util.ByteBufferUtils.getBackingArray
+import fr.rowlaxx.springwebsocketaop.util.WebSocketSessionUtils.handleBinaryMessage
+import fr.rowlaxx.springwebsocketaop.util.WebSocketSessionUtils.handleClose
+import fr.rowlaxx.springwebsocketaop.util.WebSocketSessionUtils.handlePongMessage
+import fr.rowlaxx.springwebsocketaop.util.WebSocketSessionUtils.handleTextMessage
+import fr.rowlaxx.springwebsocketaop.util.WebSocketSessionUtils.handleTransportError
 import org.springframework.web.socket.*
 import org.springframework.web.socket.handler.AbstractWebSocketHandler
 

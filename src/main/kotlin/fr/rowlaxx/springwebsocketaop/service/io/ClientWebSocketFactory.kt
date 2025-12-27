@@ -5,7 +5,7 @@ import fr.rowlaxx.springwebsocketaop.exception.WebSocketCreationException
 import fr.rowlaxx.springwebsocketaop.exception.WebSocketException
 import fr.rowlaxx.springwebsocketaop.model.WebSocket
 import fr.rowlaxx.springwebsocketaop.model.WebSocketHandler
-import fr.rowlaxx.springwebsocketaop.utils.JavaWebSocketListener
+import fr.rowlaxx.springwebsocketaop.util.JavaWebSocketListener
 import org.springframework.stereotype.Service
 import java.net.http.HttpClient
 import java.nio.ByteBuffer
@@ -37,7 +37,7 @@ class ClientWebSocketFactory(
         name: String,
         properties: WebSocketClientProperties,
         handlerChain: List<WebSocketHandler>,
-        onInitializationError: (WebSocketException) -> Unit
+        onInitializationError: (WebSocketException) -> Unit,
     ): WebSocket {
         return InternalImplementation(
             factory = baseFactory,
@@ -102,7 +102,7 @@ class ClientWebSocketFactory(
         }
 
         override fun handleClose() {
-            javaWS!!.abort()
+            javaWS?.abort()
 
             if (!isInitialized()) {
                 onInitializationError(getClosedReason()!!)

@@ -1,6 +1,6 @@
 package fr.rowlaxx.springwebsocketaop.service.aop
 
-import fr.rowlaxx.springwebsocketaop.utils.AutoPerpetualWebSocket
+import fr.rowlaxx.springwebsocketaop.util.AutoPerpetualWebSocket
 import fr.rowlaxx.springwebsocketaop.model.PerpetualWebSocket
 import org.springframework.stereotype.Service
 import org.springframework.util.ReflectionUtils

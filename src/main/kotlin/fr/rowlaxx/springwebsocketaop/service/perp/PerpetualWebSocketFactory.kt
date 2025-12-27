@@ -6,9 +6,9 @@ import fr.rowlaxx.springwebsocketaop.model.PerpetualWebSocketHandler
 import fr.rowlaxx.springwebsocketaop.model.WebSocket
 import fr.rowlaxx.springwebsocketaop.model.WebSocketHandler
 import fr.rowlaxx.springwebsocketaop.service.io.ClientWebSocketFactory
-import fr.rowlaxx.springwebsocketaop.utils.MessageDeduplicator
-import fr.rowlaxx.springwebsocketaop.utils.MessageSender
-import fr.rowlaxx.springwebsocketaop.utils.WebSocketHandlerPerpetualProxy
+import fr.rowlaxx.springwebsocketaop.util.MessageDeduplicator
+import fr.rowlaxx.springwebsocketaop.util.MessageSender
+import fr.rowlaxx.springwebsocketaop.util.WebSocketHandlerPerpetualProxy
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.util.*
@@ -38,7 +38,7 @@ class PerpetualWebSocketFactory(
         if (switchDuration.isNegative) {
             throw IllegalArgumentException("Switch duration must be a positive duration")
         }
-        else if (shiftDuration.isPositive) {
+        else if (shiftDuration.isNegative) {
             throw IllegalArgumentException("Shift duration must be a positive duration")
         }
 
@@ -76,6 +76,7 @@ class PerpetualWebSocketFactory(
             acceptMessage = this::acceptMessage,
             perpetualWebSocket = this,
             handler = handler,
+            sendPendingMessages = { messageSender.retry() }
         )
 
         private val messageSender = MessageSender(
@@ -102,7 +103,6 @@ class PerpetualWebSocketFactory(
         private fun acceptOpeningConnection(webSocket: WebSocket): Boolean = lock.withLock {
             connecting = false
             connections.add(webSocket)
-            messageSender.retry()
             nextReconnection = scheduler.schedule(this::reconnect, shiftDuration.toMillis(), TimeUnit.MILLISECONDS)
             scheduler.schedule(this::closeOldConnections, switchDuration.toMillis(), TimeUnit.MILLISECONDS)
             connections.size == 1

@@ -1,8 +1,7 @@
-package fr.rowlaxx.springwebsocketaop.utils
+package fr.rowlaxx.springwebsocketaop.util
 
 import org.springframework.aop.support.AopUtils
 import org.springframework.util.ReflectionUtils
-import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import kotlin.reflect.KClass
 

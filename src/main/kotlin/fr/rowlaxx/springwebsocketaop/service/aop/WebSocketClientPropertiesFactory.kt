@@ -2,8 +2,8 @@ package fr.rowlaxx.springwebsocketaop.service.aop
 
 import fr.rowlaxx.springwebsocketaop.annotation.WebSocketClient
 import fr.rowlaxx.springwebsocketaop.data.WebSocketClientProperties
-import fr.rowlaxx.springwebsocketaop.utils.HttpHeadersUtils.toJavaHeaders
-import fr.rowlaxx.springwebsocketaop.utils.ReflectionUtils
+import fr.rowlaxx.springwebsocketaop.util.HttpHeadersUtils.toJavaHeaders
+import fr.rowlaxx.springwebsocketaop.util.ReflectionUtils
 import org.springframework.aop.support.AopUtils
 import org.springframework.context.ApplicationContext
 import org.springframework.context.expression.BeanFactoryResolver

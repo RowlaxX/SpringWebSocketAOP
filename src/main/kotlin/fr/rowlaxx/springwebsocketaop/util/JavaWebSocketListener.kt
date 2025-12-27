@@ -1,9 +1,9 @@
-package fr.rowlaxx.springwebsocketaop.utils
+package fr.rowlaxx.springwebsocketaop.util
 
 import fr.rowlaxx.springwebsocketaop.exception.WebSocketClosedException
 import fr.rowlaxx.springwebsocketaop.exception.WebSocketConnectionException
 import fr.rowlaxx.springwebsocketaop.exception.WebSocketException
-import fr.rowlaxx.springwebsocketaop.utils.ByteBufferUtils.getBackingArray
+import fr.rowlaxx.springwebsocketaop.util.ByteBufferUtils.getBackingArray
 import tools.jackson.core.util.ByteArrayBuilder
 import java.net.http.WebSocket
 import java.nio.ByteBuffer

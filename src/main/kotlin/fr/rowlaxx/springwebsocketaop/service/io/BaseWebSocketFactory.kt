@@ -268,6 +268,9 @@ class BaseWebSocketFactory {
                     cf.completeExceptionally(ex)
                     throw ex
                 }
+                if (!hasOpened()) {
+                    throw IllegalStateException("Web Socket is still not opened")
+                }
 
                 if (index + 1 >= handlerChain.size) {
                     unsafeCloseWith(WebSocketClosedException("End of HandlerChain", 1000))

@@ -3,9 +3,9 @@ package fr.rowlaxx.springwebsocketaop.service.aop
 import fr.rowlaxx.springwebsocketaop.annotation.AfterHandshake
 import fr.rowlaxx.springwebsocketaop.annotation.BeforeHandshake
 import fr.rowlaxx.springwebsocketaop.data.WebSocketAttributes
-import fr.rowlaxx.springwebsocketaop.utils.HttpHeadersUtils.toJavaHeaders
-import fr.rowlaxx.springwebsocketaop.utils.ReflectionUtils
-import fr.rowlaxx.springwebsocketaop.utils.WebSocketMapAttributesUtils
+import fr.rowlaxx.springwebsocketaop.util.HttpHeadersUtils.toJavaHeaders
+import fr.rowlaxx.springwebsocketaop.util.ReflectionUtils
+import fr.rowlaxx.springwebsocketaop.util.WebSocketMapAttributesUtils
 import org.slf4j.LoggerFactory
 import org.springframework.http.server.ServerHttpRequest
 import org.springframework.http.server.ServerHttpResponse

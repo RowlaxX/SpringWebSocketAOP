@@ -1,4 +1,4 @@
-package fr.rowlaxx.springwebsocketaop.utils
+package fr.rowlaxx.springwebsocketaop.util
 
 import fr.rowlaxx.springwebsocketaop.data.WebSocketAttributes
 import java.net.URI

@@ -8,7 +8,7 @@ import fr.rowlaxx.springwebsocketaop.model.WebSocket
 import fr.rowlaxx.springwebsocketaop.model.WebSocketDeserializer
 import fr.rowlaxx.springwebsocketaop.model.WebSocketHandler
 import fr.rowlaxx.springwebsocketaop.model.WebSocketSerializer
-import fr.rowlaxx.springwebsocketaop.utils.ReflectionUtils
+import fr.rowlaxx.springwebsocketaop.util.ReflectionUtils
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
