@@ -1,202 +1,183 @@
 # Spring-K-Socket
 
-Spring-K-Socket is a powerful Kotlin library designed to take the headache out of managing WebSockets in Spring Boot. It moves away from rigid, centralized configurations toward a modular, annotation-driven, and highly available architecture.
+Spring-K-Socket is a high-performance Kotlin library designed to simplify and modularize WebSocket management in Spring Boot applications. It replaces rigid, centralized configurations with a modern, annotation-driven, and highly available architecture.
 
-Note : This library is built on top of ```spring-boot-starter-websocket```
+Built on top of `spring-boot-starter-websocket`, it provides the abstractions needed for complex WebSocket scenarios like zero-downtime reconnections and multi-step initialization.
 
-To enable this library, use ```@EnableKSocket```
+## Key Highlights
+
+- **Horizontal Configuration:** Define WebSockets as standalone beans, similar to `@RestController`.
+- **Annotation-Driven:** Use intuitive annotations like `@WebSocketServer`, `@WebSocketClient`, and `@OnMessage`.
+- **High Availability (HA):** Intelligent "bridge" reconnection logic ensures zero message loss during socket handover.
+- **Initialization Pipeline:** Build complex handshake and authentication flows using a chain of handlers.
+- **Flexible Injection:** Method-level dependency injection for `WebSocket`, `WebSocketAttributes`, and custom payloads.
+
+---
 
 # Why Spring-K-Socket?
 
-Standard Spring WebSocket implementations often force you into "Vertical Configuration"—a single, massive ```@Configuration``` class that becomes hard to maintain as your project grows. Handling reconnections, message synchronization, and "keep-alive" logic manually is time-consuming and error-prone.
+Standard Spring WebSocket implementations often lead to "Vertical Configuration"—a single, massive `@Configuration` class that becomes unmanageable as your project grows. Manual handling of reconnections, message synchronization, and "keep-alive" logic is error-prone and tedious.
 
-Spring-K-Socket changes the game by providing:
+Spring-K-Socket enables **Modular WebSocket Design**, allowing each socket's logic to live in its own component, fully integrated with the Spring lifecycle.
 
-- Horizontal Configuration: Declare WebSockets as individual beans, just like ```@RestController``` or ```@Service```.
-- Annotation-First: Use ```@WebSocketServer``` and ```@WebSocketClient``` for clean, readable code.
-- Zero-Downtime Reconnections: Unique High Availability (HA) logic that opens a new connection before the old one expires.
-- Automatic Handshaking: Built-in support for post-connection initialization messages.
+---
 
-# Features
+# Core Features
 
-## 1. Horizontal Bean Configuration
+### 1. Modular Bean Configuration
+Stop stuffing every socket into one config file. Each WebSocket endpoint is its own Spring bean.
 
-Stop stuffing every socket into one config file. With this library, your WebSocket logic lives where it belongs: in its own component.
+### 2. High Availability (HA) & Perpetual Connections
+Many external providers force-close connections after a set duration (e.g., 24 hours). Spring-K-Socket monitors these timeouts and establishes a "bridge" connection shortly before the old one dies.
 
-## 2. Annotation-Based Modularity
+- **Zero-Downtime:** The new connection is ready before the old one is closed.
+- **Message Deduplication:** Automatic deduplication during the handover period ensures each message is processed exactly once.
 
-```kotlin
-@WebSocketServer(paths = ["/chat/room"])
-class ChatSocketHandler {
-    
-    @OnMessage
-    fun handleMessage(message: String) {
-    // Logic here
-    }
-    
-}
-```
+### 3. Initialization Handlers
+Need to send an auth token or a "subscribe" JSON before the socket is "ready"? Use the initialization hooks to automate your handshake logic before passing control to the main handler.
 
-## 3. High Availability (HA) & Perpetual Connections
+### 4. Smart Injection
+Handlers support flexible method signatures. Inject only what you need:
+- `WebSocket`: The raw socket instance.
+- `WebSocketAttributes`: Type-safe metadata storage for the session.
+- `Any`: Automatically deserialized message payloads.
 
-Many external WebSocket providers force-close connections after a set duration. Spring-K-Socket monitors these timeouts and establishes a "bridge" connection shortly before the old one dies, ensuring you never miss a message during the handover.
-
-## 4. Initialization Handlers
-
-Need to send an auth token or a "subscribe" JSON as soon as a client connects? Use the initialization hooks to automate the "unleashing" of your socket's purpose.
+---
 
 # Getting Started
 
-## Usage Example - External data stream
+## 1. Enable the Library
+Annotate your configuration class with `@EnableKSocket`.
+
+```kotlin
+@Configuration
+@EnableKSocket
+class MyWebSocketConfig
+```
+
+## 2. Usage Example - External Market Data (HA Client)
 
 ```kotlin
 /*
  * A new connection will be opened 23 hours after the connection has been opened.
- * When the new connection has succeeded, the old one will be closed after switchDuration.
- * This will guarantee that no message is missed.
- * 
- * Note : during this short period of two concurrent web-socket, a message deduplicator will work, ensuring you handle every message only once
+ * A message deduplicator ensures no message is processed twice during the handover.
  */
 @WebSocketClient(
-    url = "wss://api.external-exchange.com/stream",
-    shiftDuration = "PT23H", //23 Hours
+    url = "wss://api.exchange.com/stream",
+    shiftDuration = "PT23H", 
     switchDuration = "PT3S",
-    initializers = [MarketDataClientSubscriber::class],
-    defaultSerializer = MySerializer::class,
-    defaultDeserializer = MyDeserializer::class,
+    initializers = [MarketDataSubscriber::class],
+    defaultSerializer = JsonLinesSerializer::class,
+    defaultDeserializer = JsonLinesDeserializer::class,
 )
-//PerpetualWebSocket, we handle PerpetualWebSocket in here
 class MarketDataClient {
-    private val perp = AutoPerpetualWebSocket() // For outside context access
+    // Allows access to the perpetual socket from outside the callbacks
+    private val perp = AutoPerpetualWebSocket() 
      
     @OnAvailable
-    //Called when the connection pool size get from 0 to 1
-    fun onAvailable() {
-        println("Ready")
-    }
+    fun onAvailable() = println("Stream Connected & Authenticated")
     
     @OnMessage
-    //We can inject Trade thanks to the custom deserializer
-    fun onData(payload: Trade) {
-        println("New market data: $payload")
+    fun onTrade(trade: Trade) {
+        println("New trade received: $trade")
     }
-    
-    @OnUnavailable
-    //Called when the connection pool size get from 1 to 0
-    fun onUnavailable() {
-        //Logic
-    }
-    
 }
 
 @Component
-//Initializer, we handle WebSocket in here
-class MarketDataClientSubscriber {
-
+class MarketDataSubscriber {
     @OnAvailable
     fun onConnected(ws: WebSocket) {
-        //The custom serializer will convert the SubscribeRequest to a String or a ByteArray
-        ws.sendMessageAsync(SubscribeRequest(
-            id = 0,
-            topic = "BTCUSDT"   
-        ))
+        // Automatically serialized to the format expected by the server
+        ws.sendMessageAsync(SubscribeRequest(topic = "BTCUSDT"))
     }
     
     @OnMessage
-    //We can inject a SubscribeResponse thanks to the custom deserializer
-    fun onSubscribed(ws: WebSocket, result: SubscribeResponse) {
-        if (result.id == 0) {
-            //Moving to the next handler
-            ws.completeHandlerAsync()
+    fun onSubscribed(ws: WebSocket, response: SubscribeResponse) {
+        if (response.isSuccess) {
+            ws.completeHandlerAsync() // Transition to the main handler
         }
-    }
-    
-    @OnUnavailable
-    fun onUnavailable(ws: WebSocket) {
-        // Called when the WebSocket has been closed, or when completeHandlerAsync() has been called
     }
 }
 ```
 
-## Usage Example - Chat Server with rooms
-
+## 3. Usage Example - Chat Server with Rooms
 
 ```kotlin
-//Declare an attribute that hold the room id
 object ChatRoom : WebSocketAttribute<String>()
 
 @WebSocketServer(
     paths = ["/chat"],
-    initializers = [WebSocketChatServerInitializer::class],
-    defaultSerializer = MySerializer::class,
-    defaultDeserializer = MyDeserializer::class,
-    initTimeout = "PT10S" // Close connection if they did not arrive to the final handler within 10s
+    initializers = [ChatRoomJoinInitializer::class],
+    initTimeout = "PT10S"
 )
-//We handle websocket in here
-class WebSocketChatServer {
-    //This collection will be auto managed by the library
-    private val connections = AutoWebSocketCollection()
+class ChatServer {
+    private val members = AutoWebSocketCollection()
     
-    @OnUnavailable
-    fun onLeft(ws: WebSocket) {
-        val room = ws.attributes[ChatRoom]
-        val msg = LeaveMessage(ws.id)
-        connections.send(msg) { ws.attributes[ChatRoom] == room }
-    }
-
     @OnAvailable
     fun onJoined(ws: WebSocket) {
         val room = ws.attributes[ChatRoom]
-        val msg = JoinedMessage(ws.id)
-        connections.send(msg) { ws.attributes[ChatRoom] == room }
+        members.send(JoinedMessage(ws.id)) { it.attributes[ChatRoom] == room }
     }
     
     @OnMessage
-    fun onMessage(ws: WebSocket, msg: TextMessage) {
+    fun onMessage(ws: WebSocket, msg: ChatMessage) {
         val room = ws.attributes[ChatRoom]
-        connections.send(msg) { ws.attributes[ChatRoom] == room }
+        members.send(msg) { it.attributes[ChatRoom] == room }
     }
 }
 
 @Component
-//We handle websocket in here
-class WebSocketChatServerInitializer {
-    
+class ChatRoomJoinInitializer {
     @OnMessage
-    fun goToChatRoom(ws: WebSocket, request: ChatRoomRequest) {
+    fun joinRoom(ws: WebSocket, request: JoinRequest) {
         ws.attributes[ChatRoom] = request.room
         ws.completeHandlerAsync()
     }
-    
 } 
 ```
 
-## Sending messages from a non WebSocket context
+---
 
-You can use ```AutoPerpetualWebSocket``` and ```AutoWebSocketCollection``` in your handler class to access the WebSocket outside the ```OnAvailable```, ```OnUnavailable``` and ```OnMessage``` callbacks
+# Advanced Usage
 
-See the above examples for more info
+### Handling Handshakes
+On the server-side, you can intercept the HTTP handshake using `@BeforeHandshake` and `@AfterHandshake`.
 
-## Custom Serializer/Deserializer for each handler
+```kotlin
+@WebSocketServer(paths = ["/secure"])
+class SecureServer {
+    @BeforeHandshake
+    fun validate(request: ServerHttpRequest): Boolean {
+        return request.headers.containsKey("X-Auth-Token")
+    }
+}
+```
 
-You can override the defaultSerializer and defaultDeserializer properties by annotating your handler class by ```@WebSocketHandlerProperties```
+### Accessing Sockets Globally
+Use `AutoPerpetualWebSocket` (for clients) or `AutoWebSocketCollection` (for servers) to send messages from services or controllers outside the handler callbacks.
 
-## Handling server handshake
+```kotlin
+@Service
+class NotificationService(private val chatServer: ChatServer) {
+    fun notify(msg: String) {
+        // chatServer uses AutoWebSocketCollection internally
+        chatServer.broadcast(msg) 
+    }
+}
+```
 
-On server-side, you can handle server handshake via the ```@BeforeHandshake``` and ```@AfterHandshake``` annotations
-
-Note : these annotation must be present on the **first handler**
+---
 
 # Contributing
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-- Fork the Project
-- Create your Feature Branch (git checkout -b feature/AmazingFeature)
-- Commit your Changes (git commit -m 'Add some AmazingFeature')
-- Push to the Branch (git push origin feature/AmazingFeature)
-- Open a Pull Request
+---
 
 # License
 
-Distributed under the MIT License. See LICENSE for more information.
+Distributed under the MIT License. See `LICENSE` for more information.
